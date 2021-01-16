@@ -1,0 +1,2 @@
+watchify -o example/bundle.js example/app.js
+static example -i index.htm -p 9090
