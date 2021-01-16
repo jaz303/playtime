@@ -4,9 +4,8 @@ const {PrimitiveShader} = require('./primitive-shader');
 const {mat4} = require('gl-matrix');
 
 module.exports = function createCore(platform) {
-
-	const canvas = platform.canvas;
-	const gl = canvas.getContext('webgl');
+	const gl = platform.gl;
+	
 	const shader = new PrimitiveShader(gl);
 	const opQueue = [];
 	const primitiveBuffer = new PrimitiveVertexBuffer();
@@ -14,7 +13,7 @@ module.exports = function createCore(platform) {
 	const glBuffer = gl.createBuffer();
 
 	const projectionMatrix = mat4.create();
-	mat4.ortho(projectionMatrix, 0, canvas.width, canvas.height, 0, -1, 1);
+	mat4.ortho(projectionMatrix, 0, platform.width, platform.height, 0, -1, 1);
 
 	function beforeLoop() {
 		primitiveBuffer.reset();
@@ -42,26 +41,22 @@ module.exports = function createCore(platform) {
 		gl.vertexAttribPointer(shader.locColor, 4, gl.FLOAT, gl.FALSE, 24, 8);
 
 		opQueue.forEach(op => op.exec(gl));
+
+		platform.flush();
 	}
 
 	return {
 		vector: primitives,
 		run({setup, loop}) {
-			let running = true;
-
 			setup();
-
-			function tick() {
-				if (!running) {
-					return;
+			return platform.run({
+				fps: 60,
+				loop(input) {
+					beforeLoop();
+					loop(input);
+					afterLoop();
 				}
-				beforeLoop();
-				loop(platform.getInput());
-				afterLoop();
-				requestAnimationFrame(tick);
-			}
-
-			requestAnimationFrame(tick);
+			});
 		}
 	}
 }
